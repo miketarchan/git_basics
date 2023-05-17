@@ -25,29 +25,70 @@ TOTAL = SUM * ((1 + p) ** (SET_PERIOD / FIXED_PERIOD))
 # as well
 # TODO: (extra) Output only percents if the initial SUM is
 # not known at the moment the script is run
-USAGE = """USAGE: {script} initial_sum percent fixed_period set_period
-\tCalculate deposit yield. See script source for more details.
+
+USAGE = """This script calculates the deposit you can earn based on input data you provided
+USAGE: {script} initial_sum:<value> percent:<value> fixed_period:<value> set_period:<value>
 """
 USAGE = USAGE.strip()
 
+COMMON_PERIODS = {
+    '1 Month': 1/12,
+    '6 Months': 1/2,
+    '1 Year': 1,
+    '2 Years': 2,
+    '5 Years': 5,
+    '10 Years': 10
+}
+
+def getGrowth(percent, set_period, fixed_perid):
+    """Calculate growth coefficient"""
+    percent = percent / 100
+    return (1 + percent) ** (set_period / fixed_perid)
+
+def formatAmount(amount):
+    return "{:.2f}".format(amount)
+
 def deposit(initial_sum, percent, fixed_period, set_period):
     """Calculate deposit yield."""
-    per = percent / 100
-    growth = (1 + per) ** (set_period / fixed_period)
-    return initial_sum * growth
+    res = initial_sum * getGrowth(percent,fixed_perid=fixed_period,set_period=set_period)
+    return formatAmount(res)
 
 def main(args):
     """Gets called when run as a script."""
-    if len(args) != 4 + 1:
-        exit(USAGE.format(script=args[0]))
-    args = args[1:]
-    initial_sum, percent, fixed_period, set_period = map(float, args)
-    # same as
-    # initial_sum = float(args[0])
-    # percent = float(args[1])
-    # ...
-    res = deposit(initial_sum, percent, fixed_period, set_period)
-    print(res)
+    script, *args = args
+    
+    config = {
+        'initial_sum' : None,
+        'percent' : None,
+        'fixed_period' : None,
+        'set_period' : None
+    }
+
+    for value in args:
+        parts = value.split(":")
+        if len(parts) != 2:
+            continue
+        key, value = value.split(":")
+        if key in config:
+            config[key]=float(value)
+    
+    if(config['percent'] is None or config['fixed_period'] is None):
+        exit(USAGE.format(script=script))
+
+    if config['initial_sum'] is None:
+        for key in COMMON_PERIODS:
+            growth = getGrowth(config['percent'], COMMON_PERIODS[key], config['fixed_period'])
+            print(key + ' : ' + formatAmount(growth * 100)+ '%')
+        
+        if config['set_period'] is not None:
+            growth = getGrowth(config['percent'], config['set_period'], config['set_period'])
+            print('Your period (' + str(config['set_period']) + ') : ' + formatAmount(growth * 100)+ '%')
+    else:
+        for key in COMMON_PERIODS:
+            print(key + ' : ' + deposit(config['initial_sum'], config['percent'], config['fixed_period'], COMMON_PERIODS[key]))
+        
+        if config['set_period'] is not None:
+            print('Your period (' + str(config['set_period']) + ') : ' + deposit(config['initial_sum'], config['percent'], config['fixed_period'], COMMON_PERIODS[key]))
 
 if __name__ == '__main__':
     import sys
