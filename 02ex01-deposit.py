@@ -19,12 +19,6 @@ Math formula:
 p = PERCENT / 100
 TOTAL = SUM * ((1 + p) ** (SET_PERIOD / FIXED_PERIOD))
 """
-# TODO: add lines to calculate yields for some common periods
-# of time (e.g. 1 month, 1 year, 5 years, 10 years)
-# TODO: change the script to output the 1-year percent yield
-# as well
-# TODO: (extra) Output only percents if the initial SUM is
-# not known at the moment the script is run
 
 USAGE = """This script calculates the deposit you can earn based on input data you provided
 USAGE: {script} initial_sum:<value> percent:<value> fixed_period:<value> set_period:<value>
