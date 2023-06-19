@@ -1,5 +1,6 @@
 from random import shuffle
 from collections import namedtuple
+import shelve
 
 
 SuitView = namedtuple('SuitView', ['symbol', 'color'])
@@ -11,6 +12,8 @@ _all_ranks = _additional_ranks + _regular_ranks
 _COLOR_RED = '\033[31m'
 _COLOR_BLACK = '\033[30m'
 _DEFAULT_COLOR = '\033[39m'
+
+storage = shelve.open('cards')
 
 
 _suits = {
@@ -52,8 +55,18 @@ class BaseCardDeck:
     """
     __slots__ = '_cards', '_shufled'
 
+    @classmethod
+    def load(cls):
+        if cls.__name__ in storage:
+            return storage[cls.__name__]
+        raise ValueError(f'There is no {cls.__name__!r} stored in storage')
+    
+    def dump(self):
+        storage[self.__class__.__name__] = self
+
     def __init__(self, ranks) -> None:
         self._cards = []
+        print('__CLASS__', self.__class__.__name__)
 
         self._shufled = False
         for rank in ranks:
@@ -210,6 +223,8 @@ if __name__ == '__main__':
     add_cards_to_deck(_additional_ranks, classicDeck)
     check_card_deck_equal(smallDeck, classicDeck)
 
+    remove_cards_from_deck([9, 10], classicDeck)
+
     print()
     print(f'{smallDeck.__class__.__name__} > {classicDeck.__class__.__name__}',
           smallDeck > classicDeck)
@@ -222,6 +237,11 @@ if __name__ == '__main__':
 
     print(f'{classicDeck.__class__.__name__} < {smallDeck.__class__.__name__}',
           classicDeck < smallDeck)
-    
-    print(f'{smallDeck.__class__.__name__} <= {classicDeck.__class__.__name__}',
-          smallDeck <= classicDeck)
+    print()
+
+    classicDeck.dump()
+    classicDeckLoadFromStorage = ClassicDeck.load()
+    storeClassicDeckLength = len(classicDeckLoadFromStorage)
+    print('Classic deck loaded from storage length is '
+          f'{storeClassicDeckLength} and is '
+          f'type of {type(classicDeckLoadFromStorage)}')
