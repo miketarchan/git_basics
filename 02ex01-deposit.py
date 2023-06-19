@@ -19,11 +19,21 @@ Math formula:
 p = PERCENT / 100
 TOTAL = SUM * ((1 + p) ** (SET_PERIOD / FIXED_PERIOD))
 """
-
-USAGE = """This script calculates the deposit you can earn based on input data you provided
-USAGE: {script} initial_sum:<value> percent:<value> fixed_period:<value> set_period:<value>
+BANK_DEPOSIT_PREPOSITION_FILE_NAME = 'bank-deposit-preposition.csv'
+EFFECTIVE_PERCENTS_FILE_NAME = 'effective-percents-result.txt'
+USAGE = f"""
+This script calculates the deposit you can earn
+based on input data you provided
+it also uses '{BANK_DEPOSIT_PREPOSITION_FILE_NAME}'
+to calculated affective additional deposits income
+by percents placed in that file
+the result of script's job also storing into '{EFFECTIVE_PERCENTS_FILE_NAME}'
+USAGE: initial_sum:<value> percent:<value> fixed_period:<value> set_period:<value>
 """
 USAGE = USAGE.strip()
+
+
+result_file = open(EFFECTIVE_PERCENTS_FILE_NAME, mode='w')
 
 COMMON_PERIODS = {
     '1 Month': 1/12,
@@ -34,28 +44,43 @@ COMMON_PERIODS = {
     '10 Years': 10
 }
 
-def getGrowth(percent, set_period, fixed_perid):
+
+def getGrowth(percent, set_period, fixed_period):
     """Calculate growth coefficient"""
     percent = percent / 100
-    return (1 + percent) ** (set_period / fixed_perid)
+    return (1 + percent) ** (set_period / fixed_period)
+
 
 def formatAmount(amount):
     return "{:.2f}".format(amount)
 
+
 def deposit(initial_sum, percent, fixed_period, set_period):
     """Calculate deposit yield."""
-    res = initial_sum * getGrowth(percent,fixed_perid=fixed_period,set_period=set_period)
+    res = initial_sum * getGrowth(percent,
+                                  fixed_period=fixed_period,
+                                  set_period=set_period
+                                  )
     return formatAmount(res)
 
+
+def print_and_store(msg):
+    print(msg)
+    print(msg, file=result_file)
+
+
+def print_common_periods(initial_sum, percent, fixed_period):
+    for key in COMMON_PERIODS:
+        res = deposit(initial_sum, percent, fixed_period, COMMON_PERIODS[key])
+        print_and_store(f'{key} :  {res}')
+
+
 def main(args):
-    """Gets called when run as a script."""
-    script, *args = args
-    
     config = {
-        'initial_sum' : None,
-        'percent' : None,
-        'fixed_period' : None,
-        'set_period' : None
+        'initial_sum': None,
+        'percent': None,
+        'fixed_period': None,
+        'set_period': None
     }
 
     for value in args:
@@ -64,26 +89,63 @@ def main(args):
             continue
         key, value = value.split(":")
         if key in config:
-            config[key]=float(value)
-    
-    if(config['percent'] is None or config['fixed_period'] is None):
+            config[key] = float(value)
+
+    if config['percent'] is None or config['fixed_period'] is None:
         exit(USAGE.format(script=script))
 
     if config['initial_sum'] is None:
         for key in COMMON_PERIODS:
-            growth = getGrowth(config['percent'], COMMON_PERIODS[key], config['fixed_period'])
-            print(key + ' : ' + formatAmount(growth * 100)+ '%')
-        
+            growth = getGrowth(
+                config['percent'],
+                COMMON_PERIODS[key],
+                config['fixed_period'])
+
+            print(key + ' : ' + formatAmount(growth * 100) + '%')
+
         if config['set_period'] is not None:
-            growth = getGrowth(config['percent'], config['set_period'], config['set_period'])
-            print('Your period (' + str(config['set_period']) + ') : ' + formatAmount(growth * 100)+ '%')
+            growth = getGrowth(config['percent'],
+                               config['set_period'],
+                               config['set_period'])
+
+            print('Your period ('
+                  + str(config['set_period']) + ') : '
+                  + formatAmount(growth * 100) + '%')
     else:
-        for key in COMMON_PERIODS:
-            print(key + ' : ' + deposit(config['initial_sum'], config['percent'], config['fixed_period'], COMMON_PERIODS[key]))
-        
+
+        print_common_periods(config['initial_sum'],
+                             config['percent'],
+                             config['fixed_period'])
+
         if config['set_period'] is not None:
-            print('Your period (' + str(config['set_period']) + ') : ' + deposit(config['initial_sum'], config['percent'], config['fixed_period'], COMMON_PERIODS[key]))
+            msg = f"Your period ({str(config['set_period'])}) : "
+            msg += deposit(config['initial_sum'],
+                           config['percent'],
+                           config['fixed_period'],
+                           config['set_period'])
+            print_and_store(msg)
+
+        print()
+        print_and_store("AND ALSO HERE A BANKS PREPOSITIONS DOWN BELOW:")
+        with open(BANK_DEPOSIT_PREPOSITION_FILE_NAME) as file:
+            data = file.readlines()
+            for line in data:
+                line = line.strip()
+                bank_name, percent = line.split(',')
+                print()
+                print_and_store(f'{bank_name} ({percent}%)')
+                print_common_periods(
+                    config['initial_sum'],
+                    float(percent),
+                    config['fixed_period']
+                )
+
+        print()
+
 
 if __name__ == '__main__':
     import sys
-    main(sys.argv)
+    """Gets called when run as a script."""
+    script, *argv = sys.argv
+
+    main(argv)
